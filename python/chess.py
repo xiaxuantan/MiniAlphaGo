@@ -19,7 +19,7 @@ def next_possible_steps(pieces, turn):
 				while x>=0 and x<=7 and y>=0 and y<=7 and not pieces[x][y]==None and pieces[x][y].color==aim:
 					x += directions[k][0]
 					y += directions[k][1]
-				# 没有变过
+				# 没有找到路径
 				if x == i + directions[k][0] and y == j + directions[k][1]:
 					continue
 				if x<0 or x>7 or y<0 or y>7 or pieces[x][y]==None:
@@ -34,7 +34,6 @@ def next_possible_steps(pieces, turn):
 def put_piece(pos, turn, pieces):
 	aim = 'w' if turn == 'b' else 'b'
 	i, j = pos
-	print 'i',i,'j',j
 	pieces[i][j] = Piece(turn)
 	for k in range(8):
 		x = i + directions[k][0]
@@ -46,10 +45,8 @@ def put_piece(pos, turn, pieces):
 			continue
 		if x<0 or x>7 or y<0 or y>7 or pieces[x][y]==None or pieces[x][y].color==aim:
 			continue
-		print 'x',x,'y',y,'i',i,'j',j
 		while not x==i or not y==j:
 			x -= directions[k][0]
 			y -= directions[k][1]
-			print 'x',x,'y',y
 			pieces[x][y].color = turn
 
