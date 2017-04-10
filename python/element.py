@@ -40,12 +40,12 @@ class Player:
 class Game:
 	def __init__(self):
 		self.pieces = None
-		self.player = None
-		self.player = None
+		self.player1 = None
+		self.player2 = None
 		self.turn = 'b'
 		self.unwalkable = 0
 
-	def players_config(self,name1='Peter',name2='June',kind1='Human',kind2='Human'):
+	def players_config(self,name1='Black',name2='White',kind1='Human',kind2='Human'):
 		self.player1 = Player(name=name1, kind=kind1)
 		self.player2 = Player(name=name2, kind=kind2)
 
