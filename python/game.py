@@ -1,4 +1,5 @@
-# -*- coding:utf-8 -*-  
+# -*- coding:utf-8 -*- 
+
 import pygame
 import chess
 from element import *
@@ -86,14 +87,15 @@ color_gray = (50,50,50)
 
 ##########################################################################
 
-# 比赛是否已经开始
-is_game_start = False
-# 比赛是否有人获得胜利
-is_game_finished = False
-# 是否在主页
-is_homepage = True
+HOME_PAGE, GAME_PAGE, SETTING_PAGE = range(3)
+MAN_VS_MAN, MAN_VS_AI, MAN_VS_NET, AI_VS_NET = range(4)
+
+page_status = HOME_PAGE
+game = Game()
 
 ##########################################################################
+
+
 
 def fetch_chessboard_position(pos):
 	x = pos[0]-chessboard_x
@@ -107,33 +109,10 @@ def fetch_mode_position(pos):
 	if pos[0]>=mode_button_left and pos[0]<=mode_button_left+mode_button_width:
 		for i in range(4):
 			if pos[1]>=mode_button_up+i*mode_button_frame_height and pos[1]<=mode_button_up+i*mode_button_frame_height+mode_button_height:
-				return i+1
+				return i
 	else:
-		return 0
+		return -1
 
-
-# 很多东西都写死了 参数mode代表鼠标移到了哪个模式的位置上
-def draw_homepage(mode):
-	offset = 22
-	font_type = '../img/huakangwawa.TTF'
-	show_text((80,30), 'Reversi', color=(0,0,0), font_size = 100, font_type=font_type)	
-	color1 = color_white if mode == 1 else color_black
-	color2 = color_white if mode == 2 else color_black
-	color3 = color_white if mode == 3 else color_black
-	color4 = color_white if mode == 4 else color_black
-	bold1 = 0 if mode == 1 else 5
-	bold2 = 0 if mode == 2 else 5
-	bold3 = 0 if mode == 3 else 5
-	bold4 = 0 if mode == 4 else 5
-	pygame.draw.ellipse(screen, color_black, (mode_button_left, mode_button_up+0*mode_button_frame_height, mode_button_width, mode_button_height), bold1)
-	pygame.draw.ellipse(screen, color_black, (mode_button_left, mode_button_up+1*mode_button_frame_height, mode_button_width, mode_button_height), bold2)
-	pygame.draw.ellipse(screen, color_black, (mode_button_left, mode_button_up+2*mode_button_frame_height, mode_button_width, mode_button_height), bold3)
-	pygame.draw.ellipse(screen, color_black, (mode_button_left, mode_button_up+3*mode_button_frame_height, mode_button_width, mode_button_height), bold4)
-	show_text((165, mode_button_up+0*mode_button_frame_height+offset), 'Man vs Man', color=color1, font_size = 30, font_type=font_type)
-	show_text((171, mode_button_up+1*mode_button_frame_height+offset), 'Man vs AI',  color=color2, font_size = 30, font_type=font_type)
-	show_text((165, mode_button_up+2*mode_button_frame_height+offset), 'Man vs NET', color=color3, font_size = 30, font_type=font_type)
-	show_text((171, mode_button_up+3*mode_button_frame_height+offset), 'AI vs NET',  color=color4, font_size = 30, font_type=font_type)
-	
 def show_text(pos, text, color=(0,0,0), font_bold = False, font_size = 13, font_italic = False, font_type='../img/MONACO.TTF'):         
     #获取系统字体，并设置文字大小  
     text_font = pygame.font.Font(font_type, font_size)  
@@ -146,10 +125,24 @@ def show_text(pos, text, color=(0,0,0), font_bold = False, font_size = 13, font_
     #绘制文字  
     screen.blit(text, pos)
 
+# 很多东西都写死了 参数mode代表鼠标移到了哪个模式的位置上
+def draw_homepage(mode):
+	offset = 22
+	font_type = '../img/huakangwawa.TTF'
+	show_text((80,30), 'Reversi', color=(0,0,0), font_size = 100, font_type=font_type)
+
+	colors  = [color_white if mode == each else color_black for each in range(4)]
+	bolds   = [0 if mode == each else 5 for each in range(4)]
+	text_lefts = [165, 171, 165, 171]
+	texts   = ['Man vs Man','Man vs AI','Man vs NET','AI vs NET']
+
+	for i in range(4):
+		pygame.draw.ellipse(screen, color_black, (mode_button_left, mode_button_up+i*mode_button_frame_height, mode_button_width, mode_button_height), bolds[i])
+		show_text((text_lefts[i], mode_button_up+i*mode_button_frame_height+offset), texts[i], color=colors[i], font_size = 30, font_type=font_type)
+	
 def draw_chessboard():
 	
 	bold = 3
-
 	for i in range(8):
 		for j in range(8):
 			pygame.draw.rect(screen, color_deep_green, Rect(chessboard_x+grid_width*i,chessboard_y+grid_height*j,grid_width,grid_height))
@@ -168,22 +161,26 @@ def draw_piece(pieces):
 				offset = ((chessboard_width)/8 - piece_width)/2
 				screen.blit(piece_image, (chessboard_x + x*grid_width + offset, chessboard_y + y*grid_height + offset))	
 
-def draw_hint(places, focus, turn):
-	if len(places)==0:
+def draw_hint(solutions, flips, focus, turn):
+	if len(solutions)==0:
 		return
 
 	color = color_black if turn=='b' else color_white
+	color_counter = color_white if turn=='b' else color_black
 
 	# 边框大小 默认为0就是填充矩形
 	bold = 5
+	offset = 3
+
 	#闪烁效果
-	for i in range(len(places)):
-		if places[i][0]==focus[0] and places[i][1]==focus[1]:
-			pygame.draw.rect(screen, color, 
-				Rect(chessboard_x+grid_width*places[i][0],chessboard_y+grid_height*places[i][1],grid_width,grid_height))
+	for i in range(len(solutions)):
+		if solutions[i][0]==focus[0] and solutions[i][1]==focus[1]:
+			pygame.draw.rect(screen, color, Rect(chessboard_x+grid_width*solutions[i][0],chessboard_y+grid_height*solutions[i][1],grid_width,grid_height))
+			show_text((chessboard_x+grid_width*solutions[i][0]+piece_width/2-offset, chessboard_y+grid_height*solutions[i][1]+piece_height/2-4*offset), str(flips[i]), color=color_counter, font_size = 25)
+
 		else:
-			pygame.draw.rect(screen, color, 
-				Rect(chessboard_x+grid_width*places[i][0],chessboard_y+grid_height*places[i][1],grid_width,grid_height), bold)	
+			pygame.draw.rect(screen, color, Rect(chessboard_x+grid_width*solutions[i][0],chessboard_y+grid_height*solutions[i][1],grid_width,grid_height), bold)	
+			show_text((chessboard_x+grid_width*solutions[i][0]+piece_width/2-offset, chessboard_y+grid_height*solutions[i][1]+piece_height/2-4*offset), str(flips[i]), color=color, font_size = 25)
 
 def draw_infoboard(game):
 	offset = 20
@@ -194,9 +191,7 @@ def draw_infoboard(game):
 	header = 'Player  Step  Total  Chess'
 	p1text = ' %-8s %-6s %-6s  %-6s' % (game.player1.name, str(game.player1.t_step_total)+'s', str(game.player1.t_total+game.player1.t_step_total)+'s' ,game.player1.own)
 	p2text = ' %-8s %-6s %-6s  %-6s' % (game.player2.name, str(game.player2.t_step_total)+'s', str(game.player2.t_total+game.player2.t_step_total)+'s' ,game.player2.own)
-	#print header
-	#print p1text
-	#print p2text
+
 	show_text(pos=(info_x+offset,info_y+1*offset),text=header,font_size=17, font_bold=True)
 	show_text(pos=(info_x+offset,info_y+2*offset),text=p1text,font_size=16,color=(0,0,0))
 	show_text(pos=(info_x+offset,info_y+3*offset),text=p2text,font_size=16,color=(255,255,255))
@@ -205,11 +200,6 @@ def draw_infoboard(game):
 	screen.blit(refresh_button, (refresh_button_x, refresh_button_y))
 
 ##########################################################################
-
-
-# 人人、人机、人网、机网
-
-game = Game()
 
 #游戏主循环
 while True:
@@ -229,33 +219,41 @@ while True:
 			click = True
 
 	# 在主页
-	if is_homepage == True:
+	if page_status == HOME_PAGE:
 		
 		mode = fetch_mode_position(mouse_pos)
 		draw_homepage(mode)
 
-		if click == True and not mode == 0:
-			if mode == 1:	
+		if click == True and not mode == -1:
+			if mode == MAN_VS_MAN:	
 				is_homepage = False
-				is_game_start = True
-				is_game_finished = False
+				page_status = GAME_PAGE
 				game.players_config()	
 				game.start()
-			elif mode == 2:
+			elif mode == MAN_VS_AI:
 				pass
-			elif mode == 3:
+			elif mode == MAN_VS_NET:
 				pass
-			elif mode == 4:
+			elif mode == AI_VS_NET:
 				pass
+
+	# 在设置页
+	elif page_status == SETTING_PAGE:
+		
+		if mode == MAN_VS_AI:
+			pass
+		elif mode == MAN_VS_NET:
+			pass
+		elif mode == AI_VS_NET:
+			pass
 		
 	# 如果比赛已经开始
-	if is_game_start == True:
+	elif page_status == GAME_PAGE:
 
 		# 两边都走不了
 		if game.unwalkable == 2:
-			is_game_finished = True
-			game.player1.step_stop()
-			game.player2.step_stop()		
+			# 比赛结束
+			game.end()		
 
 		# 画棋盘
 		draw_chessboard()
@@ -268,24 +266,22 @@ while True:
 
 		# 按了刷新按钮
 		if click == True and mouse_pos[0]>=refresh_button_x and mouse_pos[0]<=refresh_button_x+button_width and mouse_pos[1]>=refresh_button_y and mouse_pos[1]<=refresh_button_y+button_height:
-			is_game_finished = False
 			game.start()
 		# 按了回到桌面按钮
-		if click == True and mouse_pos[0]>=home_button_x and mouse_pos[0]<=home_button_x+button_width and mouse_pos[1]>=home_button_y and mouse_pos[1]<=home_button_y+button_height:
-			is_game_finished = True
-			is_game_start = False
-			is_homepage = True
+		elif click == True and mouse_pos[0]>=home_button_x and mouse_pos[0]<=home_button_x+button_width and mouse_pos[1]>=home_button_y and mouse_pos[1]<=home_button_y+button_height:			
+			game.end()
+			page_status = HOME_PAGE
 
-		if is_game_finished == False:
+		if game.is_finished == False:
 
 			# 更新时间和棋子数目
-			game.player1.update(game.turn)
-			game.player2.update(game.turn)
-			game.player1.count(game.pieces)
-			game.player2.count(game.pieces)
+			game.update()
 
 			# 求出下一步的解
-			solutions = chess.next_possible_steps(game.pieces, game.turn)
+			solutions, flips = chess.next_possible_steps(game.pieces, game.turn)
+
+			# 画出可能的解
+			draw_hint(solutions, flips, focus, game.turn)
 
 			next_turn = 'w' if game.turn == 'b' else 'b'
 			this_player = game.player1 if game.turn == 'b' else game.player2
@@ -297,10 +293,6 @@ while True:
 			else:
 				game.unwalkable = 0
 				if this_player.kind=='Human':
-
-					# 画出可能的解
-					draw_hint(solutions, focus, game.turn)
-
 					# 在棋盘内
 					if not focus == (-1,-1):
 						# 合法位置
@@ -311,8 +303,10 @@ while True:
 							this_player.step_stop()
 							next_player.step_start()
 				elif this_player.kind=='AI':
+					# action = chess.mcts()
 					pass
 				elif this_player.kind=='Net':
+					# action = decode_json()
 					pass
 		else:
 			# print 'game end'

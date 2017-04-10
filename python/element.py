@@ -44,6 +44,7 @@ class Game:
 		self.player2 = None
 		self.turn = 'b'
 		self.unwalkable = 0
+		self.is_finished = False
 
 	def players_config(self,name1='Black',name2='White',kind1='Human',kind2='Human'):
 		self.player1 = Player(name=name1, kind=kind1)
@@ -67,5 +68,18 @@ class Game:
 		self.player1.turn = 'b'
 		self.player2.turn = 'w'
 
+		self.is_finished = False
+
 		# 玩家1开始计时
 		self.player1.t_step_start = datetime.datetime.now()
+
+	def update(self):
+		self.player1.update(self.turn)
+		self.player2.update(self.turn)
+		self.player1.count(self.pieces)
+		self.player2.count(self.pieces)
+
+	def end(self):
+		self.is_finished = True
+		self.player1.step_stop()
+		self.player2.step_stop()

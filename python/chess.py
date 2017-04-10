@@ -7,6 +7,7 @@ directions = [(0,-1),(0,1),(-1,0),(1,0),(-1,-1),(-1,1),(1,-1),(1,1)]
 # 找到当前棋局 下一步可能的方案
 def next_possible_steps(pieces, turn):
 	solutions = []
+	flips = []
 	aim = 'w' if turn == 'b' else 'b'
 	for i in range(8):
 		for j in range(8):
@@ -16,9 +17,11 @@ def next_possible_steps(pieces, turn):
 			for k in range(8):
 				x = i + directions[k][0]
 				y = j + directions[k][1]
+				cnt = 0
 				while x>=0 and x<=7 and y>=0 and y<=7 and not pieces[x][y]==None and pieces[x][y].color==aim:
 					x += directions[k][0]
 					y += directions[k][1]
+					cnt += 1
 				# 没有找到路径
 				if x == i + directions[k][0] and y == j + directions[k][1]:
 					continue
@@ -28,7 +31,8 @@ def next_possible_steps(pieces, turn):
 				break
 			if flag == True:
 				solutions.append((i,j))
-	return solutions
+				flips.append(cnt)
+	return solutions, flips
 
 # 在合法的pos位置 轮到turn 放下棋子
 def put_piece(pos, turn, pieces):
