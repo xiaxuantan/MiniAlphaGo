@@ -14,6 +14,7 @@ def next_possible_steps(pieces, turn):
 			if not pieces[i][j]==None:
 				continue
 			flag = False
+			total_cnt = 0
 			for k in range(8):
 				x = i + directions[k][0]
 				y = j + directions[k][1]
@@ -28,10 +29,10 @@ def next_possible_steps(pieces, turn):
 				if x<0 or x>7 or y<0 or y>7 or pieces[x][y]==None:
 					continue
 				flag = True
-				break
+				total_cnt += cnt
 			if flag == True:
 				solutions.append((i,j))
-				flips.append(cnt)
+				flips.append(total_cnt)
 	return solutions, flips
 
 # 在合法的pos位置 轮到turn 放下棋子
