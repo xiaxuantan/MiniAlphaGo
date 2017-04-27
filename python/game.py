@@ -2,6 +2,8 @@
 
 import pygame
 import chess
+from board import *
+from mcts import *
 from element import *
 from pygame.locals import *
 from sys import exit
@@ -113,7 +115,7 @@ def fetch_mode_position(pos):
 	else:
 		return -1
 
-def show_text(pos, text, color=(0,0,0), font_bold = False, font_size = 13, font_italic = False, font_type='../img/MONACO.TTF'):         
+def show_text(pos, text, color=(0,0,0), font_bold = False, font_size = 13, font_italic = False, font_type=img_path+'MONACO.TTF'):         
     #获取系统字体，并设置文字大小  
     text_font = pygame.font.Font(font_type, font_size)  
     #设置是否加粗属性  
@@ -128,7 +130,7 @@ def show_text(pos, text, color=(0,0,0), font_bold = False, font_size = 13, font_
 # 很多东西都写死了 参数mode代表鼠标移到了哪个模式的位置上
 def draw_homepage(mode):
 	offset = 22
-	font_type = '../img/huakangwawa.TTF'
+	font_type = img_path+'huakangwawa.TTF'
 	show_text((80,30), 'Reversi', color=(0,0,0), font_size = 100, font_type=font_type)
 
 	colors  = [color_white if mode == each else color_black for each in range(4)]
@@ -231,7 +233,12 @@ while True:
 				game.players_config()	
 				game.start()
 			elif mode == MAN_VS_AI:
-				pass
+				board = Board()
+				mcts = MonteCarlo(board)
+				is_homepage = False
+				page_status = GAME_PAGE
+				game.players_config(kind1='Human',kind2='AI')	
+				game.start()
 			elif mode == MAN_VS_NET:
 				pass
 			elif mode == AI_VS_NET:
@@ -303,8 +310,19 @@ while True:
 							this_player.step_stop()
 							next_player.step_start()
 				elif this_player.kind=='AI':
-					# action = chess.mcts()
-					pass
+					# 其实这里next_turn == last_turn
+					mcts.update((next_turn,game.pieces))
+					pos = mcts.get_play()
+					if pos != None:
+						chess.put_piece(pos, game.turn, game.pieces)
+						game.turn = next_turn
+						this_player.step_stop()
+						next_player.step_start()
+						
+
+					else:
+						# 没有步可以下
+						print 'fuck'
 				elif this_player.kind=='Net':
 					# action = decode_json()
 					pass
@@ -315,4 +333,3 @@ while True:
 
 	pygame.display.update()
 		
-    
