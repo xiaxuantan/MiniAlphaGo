@@ -10,7 +10,7 @@ from board import *
 import chess
 import element
 
-
+# 把state从指针的二维数组变为string类型
 def state_to_string(state):
 
     (player, pieces) = state
@@ -33,6 +33,7 @@ class MonteCarlo:
         # state: 包含了player信息，棋盘信息
 
         self.board = board
+        # state的结构是(player,pieces)，其中pieces是棋盘状态，player是导致当先棋盘的玩家
         self.states = []
         # 模拟的时间限制
         self.calculation_time = datetime.timedelta(seconds=5)
@@ -52,7 +53,6 @@ class MonteCarlo:
     def get_play(self):
         # Causes the AI to calculate the best move from the
         # current game state and return it.
-        # 而且已经做好判断轮到了AI
         self.max_depth = 0
         state = self.states[-1]
         # player 是 'w' or 'b'
@@ -123,7 +123,7 @@ class MonteCarlo:
                 log_total = log(summation)
                 #log_total = log(
                 #    sum([plays[(player, state_to_string(S))] for p, S in moves_states]))
-                #  这里基数小的时候，讲下面/改成*
+                # 下面用的是UCT来选择
                 value, move, state = max(
                     ((wins[(player, state_to_string(S))] / plays[(player, state_to_string(S))]) +
                      self.C * sqrt(log_total / plays[(player, state_to_string(S))]), p, S)
@@ -131,7 +131,13 @@ class MonteCarlo:
                 )
             elif len(moves_states)!=0:
                 # Otherwise, just make an arbitrary decision.
-                move, state = choice(moves_states)
+                # 下面是用random选下一步
+                # move, state = choice(moves_states)
+                for p, S in moves_states:
+                    if plays.get((player, state_to_string(S))) == None:
+                        (move,state) = (p,S)
+
+
             else:
                 # solution里面没有元素了
                 next_player = 'w' if player=='b' else 'b'
