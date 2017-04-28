@@ -24,14 +24,17 @@ class Board:
         (last_player,pieces) = state
         new_pieces = copy.deepcopy(pieces)
         this_player = 'w' if last_player == 'b' else 'b'
-        (solutions, flips) = next_possible_steps(pieces, this_player)
         
-        if play in solutions:
-            # 下了solution这一步之后的pieces
-            put_piece(play, this_player, new_pieces)
-            return (this_player,new_pieces)
-        else:
-            pass
+        #(solutions, flips) = next_possible_steps(pieces, this_player)
+        
+        #if play in solutions:
+
+        # 下了solution这一步之后的pieces
+        put_piece(play, this_player, new_pieces)
+        return (this_player,new_pieces)
+        
+        #else:
+        #    pass
 
     def legal_plays(self, state_history):
         # Takes a sequence of game states representing the full

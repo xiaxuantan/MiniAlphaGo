@@ -82,17 +82,9 @@ class MonteCarlo:
     
         # Pick the move with the highest percentage of wins.
         # player是造成state S的玩家
-        percent_wins, move = max(
-            (self.wins.get((player, state_to_string(S)), 0) /
-             self.plays.get((player, state_to_string(S)), 1),
-             p)
-            for p, S in moves_states
-        )
+        percent_wins, move = max((self.wins.get((player, state_to_string(S)), 0)/self.plays.get((player, state_to_string(S)), 1), p) for p, S in moves_states)
 
         return move
-
-
-
 
     def run_simulation(self):
         # A bit of an optimization here, so we have a local
@@ -111,11 +103,8 @@ class MonteCarlo:
         for t in xrange(self.max_moves):
             # legal：从state出发的可行步
             legal = self.board.legal_plays(states_copy)
-            #print legal
-
-            # 判断legal是否为空
-
             moves_states = [(p, self.board.next_state(state, p)) for p in legal]
+
             # 选择p，以及state更新为选择了p后的状态
             if len(moves_states)!=0 and all([plays.get((player, state_to_string(S))) for p, S in moves_states]):
                 # If we have stats on all of the legal moves here, use them.
@@ -136,16 +125,18 @@ class MonteCarlo:
                 for p, S in moves_states:
                     if plays.get((player, state_to_string(S))) == None:
                         (move,state) = (p,S)
-
-
+                        break
             else:
                 # solution里面没有元素了
                 next_player = 'w' if player=='b' else 'b'
-                (temp_player,temp_pieces) = state
+                (temp_player, temp_pieces) = state
                 state = (next_player, temp_pieces)
 
 
             states_copy.append(state)
+
+            if expand==True:
+                visited_states.add((player, state_to_string(state)))
 
             # `player` here and below refers to the player
             # who moved into that particular state.
@@ -153,8 +144,6 @@ class MonteCarlo:
                 expand = False
                 self.plays[(player, state_to_string(state))] = 0
                 self.wins[(player, state_to_string(state))] = 0
-
-            visited_states.add((player, state_to_string(state)))
 
             player = self.board.current_player(state)
             winner = self.board.winner(states_copy)
@@ -164,8 +153,6 @@ class MonteCarlo:
 
         # 更新经过路径的数据
         for player, state in visited_states:
-            if (player, state) not in self.plays:
-                continue
             self.plays[(player, state)] += 1
             # winner：赢的人的名字
             if player == winner:
