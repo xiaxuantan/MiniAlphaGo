@@ -42,6 +42,8 @@ class MonteCarlo:
         self.C = 1.4
         # simulation里面，每个儿子至少的模拟次数
         self.threshold = 5
+        self.pos = ((0,0),(0,7),(7,0),(7,7))
+        self.stage = 64
 
     def update(self, state):
         # Takes a game state, and appends it to the history.
@@ -85,6 +87,11 @@ class MonteCarlo:
         # player是造成state S的玩家
         percent_wins, move = max((self.wins.get((player, state_to_string(S)), 0)/self.plays.get((player, state_to_string(S)), 1), p) for p, S in moves_states)
 
+        print '************************'
+        print [(self.wins.get((player, state_to_string(S)), 0)/self.plays.get((player, state_to_string(S)), 1)) for p, S in moves_states]
+        print '************************'
+        print percent_wins
+
         return move
 
     def run_simulation(self):
@@ -103,6 +110,9 @@ class MonteCarlo:
         #state = states_copy[-1]
         player = self.board.current_player(state)
 
+        bpos = 0
+        wpos = 0
+
         expand = True
         for t in xrange(self.max_moves):
             # legal：从state出发的可行步
@@ -110,7 +120,8 @@ class MonteCarlo:
             moves_states = [(p, self.board.next_state(state, p)) for p in legal]
 
             # 选择p，以及state更新为选择了p后的状态
-            if len(moves_states)!=0 and all([plays.get((player, state_to_string(S))) for p, S in moves_states]) and all ([(plays[(player, state_to_string(S))]>self.threshold) for p, S in moves_states]):
+            # if len(moves_states)!=0 and all([plays.get((player, state_to_string(S))) for p, S in moves_states]) and all ([(plays[(player, state_to_string(S))]>self.threshold) for p, S in moves_states]):
+            if len(moves_states)!=0 and all([plays.get((player, state_to_string(S))) for p, S in moves_states]):
                 # If we have stats on all of the legal moves here, use them.
                 summation = sum([plays[(player, state_to_string(S))] for p, S in moves_states])
                 log_total = log(summation)
@@ -125,19 +136,17 @@ class MonteCarlo:
             elif len(moves_states)!=0:
                 # Otherwise, just make an arbitrary decision.
                 # 下面是用random选下一步
-                # move, state = choice(moves_states)
-                for p, S in moves_states:
-                    if plays.get((player, state_to_string(S))) == None or plays[(player, state_to_string(S))]<self.threshold :
-                        (move,state) = (p,S)
-                        break
+                move, state = choice(moves_states)
+                # for p, S in moves_states:
+                #    if plays.get((player, state_to_string(S))) == None or plays[(player, state_to_string(S))]<self.threshold :
+                #        (move,state) = (p,S)
+                #        break
             else:
                 # solution里面没有元素了
                 next_player = 'w' if player=='b' else 'b'
                 (temp_player, temp_pieces) = state
                 state = (next_player, temp_pieces)
                 move = None
-
-            # if move == 
 
 
             # states_copy.append(state)
@@ -152,6 +161,12 @@ class MonteCarlo:
                 self.plays[(player, state_to_string(state))] = 0
                 self.wins[(player, state_to_string(state))] = 0
 
+            if move in self.pos:
+                if player=='w':
+                    wpos += 0.5 
+                else:
+                    bpos += 0.5
+
             player = self.board.current_player(state)
             winner = self.board.winner(state)
 
@@ -159,8 +174,14 @@ class MonteCarlo:
                 break
 
         # 更新经过路径的数据
+        bonus = 0
         for player, state in visited_states:
             self.plays[(player, state)] += 1
+            if player=='w':
+                bonus = wpos 
+            else:
+                bonus = bpos
+            self.wins[(player,state)] += bonus
             # winner：赢的人的名字
             if player == winner:
                 self.wins[(player, state)] += 1
