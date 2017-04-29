@@ -8,6 +8,7 @@ from element import *
 from pygame.locals import *
 from sys import exit
 import datetime
+import multiprocessing
 
 ##########################################################################
 
@@ -238,6 +239,8 @@ while True:
 				is_homepage = False
 				page_status = GAME_PAGE
 				game.players_config(kind1='Human',kind2='AI')	
+				queue = multiprocessing.Queue()
+				thinking = False
 				game.start()
 			elif mode == MAN_VS_NET:
 				pass
@@ -310,19 +313,29 @@ while True:
 							this_player.step_stop()
 							next_player.step_start()
 				elif this_player.kind=='AI':
-					# 其实这里next_turn == last_turn
-					mcts.update((next_turn,game.pieces))
-					pos = mcts.get_play()
-					if pos != None:
-						game.pieces = chess.put_piece(pos, game.turn, game.pieces)
-						game.turn = next_turn
-						this_player.step_stop()
-						next_player.step_start()
-						
-
+					if thinking:
+						try:
+							pos = queue.get_nowait()
+							if pos != None:
+								p.terminate()
+								thinking = False
+								game.pieces = chess.put_piece(pos, game.turn, game.pieces)
+								game.turn = next_turn
+								this_player.step_stop()
+								next_player.step_start()
+							else:
+								# 没有步可以下
+								pass
+						except:
+							pass
 					else:
-						# 没有步可以下
-						print 'fuck'
+						thinking = True
+						mcts.update((next_turn, game.pieces))
+						p = multiprocessing.Process(target=mcts.get_play, args=(queue,))
+						p.start()
+						# 其实这里next_turn == last_turn
+						# mcts.update((next_turn,game.pieces))
+					
 				elif this_player.kind=='Net':
 					# action = decode_json()
 					pass

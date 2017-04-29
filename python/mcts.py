@@ -50,7 +50,7 @@ class MonteCarlo:
         
         self.states.append(state)
 
-    def get_play(self):
+    def get_play(self, queue):
         # Causes the AI to calculate the best move from the
         # current game state and return it.
         self.max_depth = 0
@@ -65,9 +65,11 @@ class MonteCarlo:
         # (player,pieces)
         # Bail out early if there is no real choice to be made.
         if not legal:
-            return None
+            queue.put(None)
+            return
         if len(legal) == 1:
-            return legal[0]
+            queue.put(legal[0])
+            return 
 
         games = 0
         begin = datetime.datetime.utcnow()
@@ -76,10 +78,6 @@ class MonteCarlo:
             games += 1
         print '************************'
         print games
-        #print '************************'
-        #print self.plays.values()
-        #print '************************'
-        #print self.wins.values()
 
         moves_states = [(p, self.board.next_state(state, p)) for p in legal]
     
@@ -91,8 +89,8 @@ class MonteCarlo:
         print [(self.wins.get((player, state_to_string(S)), 0)/self.plays.get((player, state_to_string(S)), 1)) for p, S in moves_states]
         print '************************'
         print percent_wins
-
-        return move
+        queue.put(move)
+        return
 
     def run_simulation(self):
         # A bit of an optimization here, so we have a local
