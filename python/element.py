@@ -3,9 +3,9 @@
 import datetime
 
 #棋子
-class Piece:
-	def __init__(self, color):
-		self.color = color # 'b' or 'w'
+#class Piece:
+#	def __init__(self, color):
+#		self.color = color # 'b' or 'w'
 
 #玩家
 class Player:
@@ -34,7 +34,7 @@ class Player:
 		self.own = 0
 		for i in range(8):
 			for j in range(8):
-				if not pieces[i][j]==None and pieces[i][j].color == self.turn:
+				if not pieces[i][j]=='n' and pieces[i][j] == self.turn:
 					self.own += 1
 
 class Game:
@@ -57,11 +57,11 @@ class Game:
 		self.unwalkable = 0
 		
 		#设置初始棋盘
-		self.pieces = [[None for i in range(8)] for j in range(8)]
-		self.pieces[3][3] = Piece(color='b')
-		self.pieces[3][4] = Piece(color='w')
-		self.pieces[4][3] = Piece(color='w')
-		self.pieces[4][4] = Piece(color='b')
+		self.pieces = [['n' for i in range(8)] for j in range(8)]
+		self.pieces[3][3] = 'b'
+		self.pieces[3][4] = 'w'
+		self.pieces[4][3] = 'w'
+		self.pieces[4][4] = 'b'
 
 		self.player1.t_step_total = self.player1.t_total = 0
 		self.player2.t_step_total = self.player2.t_total = 0

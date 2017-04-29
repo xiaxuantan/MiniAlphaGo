@@ -158,8 +158,8 @@ def draw_chessboard():
 def draw_piece(pieces):
 	for x in range(8):
 		for y in range(8):
-			if not pieces[x][y]==None:
-				piece_image = blackpiece if pieces[x][y].color == 'b' else whitepiece
+			if not pieces[x][y]=='n' :
+				piece_image = blackpiece if pieces[x][y] == 'b' else whitepiece
 				offset = ((chessboard_width)/8 - piece_width)/2
 				screen.blit(piece_image, (chessboard_x + x*grid_width + offset, chessboard_y + y*grid_height + offset))	
 
@@ -305,7 +305,7 @@ while True:
 						# 合法位置
 						if click == True and focus in solutions:
 							# 摆棋子
-							chess.put_piece(focus, game.turn, game.pieces)
+							game.pieces = chess.put_piece(focus, game.turn, game.pieces)
 							game.turn = next_turn
 							this_player.step_stop()
 							next_player.step_start()
@@ -314,7 +314,7 @@ while True:
 					mcts.update((next_turn,game.pieces))
 					pos = mcts.get_play()
 					if pos != None:
-						chess.put_piece(pos, game.turn, game.pieces)
+						game.pieces = chess.put_piece(pos, game.turn, game.pieces)
 						game.turn = next_turn
 						this_player.step_stop()
 						next_player.step_start()
