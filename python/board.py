@@ -8,7 +8,7 @@ from element import *
 # 对应pieces
 class Board:
     def __init__(self):
-        pass
+        self.stage = 0
 
     def current_player(self, state):
         # Takes the game state and returns the current player's
@@ -53,6 +53,22 @@ class Board:
         # the game is tied, return a different distinct value, e.g. -1.
         # last_state = state_history[-1]
         (player,pieces) =  state
+
+        white_corner = 0
+        black_corner = 0
+        for i in [0,7]:
+            for j in [0,7]:
+                if pieces[i][j]=='b':
+                    black_corner += 1
+                elif pieces[i][j]=='w':
+                    white_corner += 1
+
+        if white_corner+black_corner>self.stage and (self.stage<=2 or abs(black_corner - white_corner)>=2):
+            if white_corner>black_corner:
+                return 'w'
+            if black_corner>white_corner:
+                return 'b'
+
         next_player = 'w' if player == 'b' else 'b'
         # 判断结束
         (solutions,flips) = next_possible_steps(pieces, next_player)

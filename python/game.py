@@ -239,6 +239,7 @@ while True:
 				is_homepage = False
 				page_status = GAME_PAGE
 				game.players_config(kind1='Human',kind2='AI')	
+				#game.players_config(kind1='AI',kind2='Human')
 				queue = multiprocessing.Queue()
 				thinking = False
 				game.start()

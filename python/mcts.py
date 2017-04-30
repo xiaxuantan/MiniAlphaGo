@@ -10,6 +10,9 @@ from board import *
 import chess
 import element
 
+import multiprocessing
+
+
 # 把state从指针的二维数组变为string类型
 def state_to_string(state):
 
@@ -17,8 +20,29 @@ def state_to_string(state):
     s = ''
     for i in range(8):
         for j in range(8):
-                s += pieces[i][j]
+            s += pieces[i][j]
+        # s += '\n'
     return s
+
+def simulate(state, board):
+
+    step = 0
+    while True:
+
+        player = board.current_player(state)
+        legal = board.legal_plays(state)
+
+        moves_states = [(p, board.next_state(state, p)) for p in legal]
+        if len(legal)==0:           
+            state = (player, state[1])
+        else:
+            move, state = choice(moves_states)
+            
+        winner = board.winner(state)
+        if winner:
+            break
+
+    return winner
 
 class MonteCarlo:
     def __init__(self, board):
@@ -42,13 +66,29 @@ class MonteCarlo:
         self.C = 1.4
         # simulation里面，每个儿子至少的模拟次数
         self.threshold = 5
-        self.pos = ((0,0),(0,7),(7,0),(7,7))
+
         self.stage = 64
+
+        self.simulateTimes = 20
+        self.processes = 10
 
     def update(self, state):
         # Takes a game state, and appends it to the history.
         
         self.states.append(state)
+
+        black_and_white = 0
+        for i in [0,7]:
+            for j in [0,7]:
+                if state[1][i][j]!='n':
+                    black_and_white += 1
+
+        if black_and_white>self.board.stage:
+            self.board.stage += 1
+            # self.wins = {}
+            # self.plays = {}
+
+        print 'stage',self.board.stage
 
     def get_play(self, queue):
         # Causes the AI to calculate the best move from the
@@ -75,20 +115,17 @@ class MonteCarlo:
         begin = datetime.datetime.utcnow()
         while datetime.datetime.utcnow() - begin < self.calculation_time:
             self.run_simulation()
-            games += 1
-        print '************************'
-        print games
+            games += self.simulateTimes
+        print 'games', games
 
         moves_states = [(p, self.board.next_state(state, p)) for p in legal]
     
         # Pick the move with the highest percentage of wins.
         # player是造成state S的玩家
-        percent_wins, move = max((self.wins.get((player, state_to_string(S)), 0)/self.plays.get((player, state_to_string(S)), 1), p) for p, S in moves_states)
+        percent_wins, move = max([(self.wins.get((player, state_to_string(S)), 0)/self.plays.get((player, state_to_string(S)), 0), p) for p, S in moves_states])
 
-        print '************************'
-        print [(self.wins.get((player, state_to_string(S)), 0)/self.plays.get((player, state_to_string(S)), 1)) for p, S in moves_states]
-        print '************************'
-        print percent_wins
+        print 'win_step',[(self.wins.get((player, state_to_string(S)), 0)/self.plays.get((player, state_to_string(S)), 0)) for p, S in moves_states]
+        print 'percentage', percent_wins
         queue.put(move)
         return
 
@@ -103,16 +140,16 @@ class MonteCarlo:
         visited_states = set()
         # state = copy.deepcopy(self.states[-1])
         (player,pieces) = self.states[-1] 
-        pieces_copy = [ i[:] for i in pieces ]
-        state = (player,pieces)
-        #state = states_copy[-1]
-        player = self.board.current_player(state)
-
-        bpos = 0
-        wpos = 0
-
+        #pieces_copy = [ i[:] for i in pieces ]
+        state = (player, pieces)
+    
         expand = True
-        for t in xrange(self.max_moves):
+
+        # for t in xrange(self.max_moves):
+        while expand==True:
+
+            player = self.board.current_player(state)
+
             # legal：从state出发的可行步
             legal = self.board.legal_plays(state)
             moves_states = [(p, self.board.next_state(state, p)) for p in legal]
@@ -123,8 +160,7 @@ class MonteCarlo:
                 # If we have stats on all of the legal moves here, use them.
                 summation = sum([plays[(player, state_to_string(S))] for p, S in moves_states])
                 log_total = log(summation)
-                #log_total = log(
-                #    sum([plays[(player, state_to_string(S))] for p, S in moves_states]))
+
                 # 下面用的是UCT来选择
                 value, move, state = max(
                     ((wins[(player, state_to_string(S))] / plays[(player, state_to_string(S))]) +
@@ -132,54 +168,48 @@ class MonteCarlo:
                     for p, S in moves_states
                 )
             elif len(moves_states)!=0:
-                # Otherwise, just make an arbitrary decision.
-                # 下面是用random选下一步
-                move, state = choice(moves_states)
-                # for p, S in moves_states:
-                #    if plays.get((player, state_to_string(S))) == None or plays[(player, state_to_string(S))]<self.threshold :
-                #        (move,state) = (p,S)
-                #        break
+                
+                for p, S in moves_states:
+                    if plays.get((player, state_to_string(S))) == None:
+                        (move,state) = (p,S)
+                        break
             else:
-                # solution里面没有元素了
-                next_player = 'w' if player=='b' else 'b'
                 (temp_player, temp_pieces) = state
-                state = (next_player, temp_pieces)
-                move = None
+                state = (player, temp_pieces)
+
+            visited_states.add((player, state_to_string(state)))
 
 
-            # states_copy.append(state)
-
-            if expand==True:
-                visited_states.add((player, state_to_string(state)))
-
-            # `player` here and below refers to the player
+            # 'player' here and below refers to the player
             # who moved into that particular state.
-            if expand and (player, state_to_string(state)) not in self.plays:
+
+            if (player, state_to_string(state)) not in self.plays:
                 expand = False
                 self.plays[(player, state_to_string(state))] = 0
                 self.wins[(player, state_to_string(state))] = 0
 
-            if move in self.pos:
-                if player=='w':
-                    wpos += 0.5 
-                else:
-                    bpos += 0.5
 
-            player = self.board.current_player(state)
-            winner = self.board.winner(state)
+        self.current_state = state
+        pool = multiprocessing.Pool(processes=self.processes)
+        resultSet = []
+        for i in range(self.simulateTimes):
+            resultSet.append(pool.apply_async(simulate, (state, self.board)))
+        pool.close()
+        pool.join()
 
-            if winner:
-                break
+        totalBlackWins = 0
+        totalWhiteWins = 0
+        for result in resultSet:
+            if result.get() == 'b':
+                totalBlackWins += 1
+            elif result.get() == 'w':
+                totalWhiteWins += 1
+        totalPlays = totalBlackWins + totalWhiteWins
 
         # 更新经过路径的数据
-        bonus = 0
         for player, state in visited_states:
-            self.plays[(player, state)] += 1
-            if player=='w':
-                bonus = wpos 
-            else:
-                bonus = bpos
-            self.wins[(player,state)] += bonus
-            # winner：赢的人的名字
-            if player == winner:
-                self.wins[(player, state)] += 1
+            self.plays[(player, state)] += totalPlays
+            if player == 'b':
+                self.wins[(player, state)] += totalBlackWins
+            elif player == 'w':
+                self.wins[(player, state)] += totalWhiteWins
