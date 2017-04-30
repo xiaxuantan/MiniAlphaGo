@@ -65,7 +65,7 @@ pygame.display.set_caption("Reversi")
 ##########################################################################
 
 #导入各种图片
-img_path = '../img/'
+img_path = '../../img/'
 homepage_header_image_filename = img_path + 'homepage_header.png'
 background_image_filename = img_path + 'background.jpg'
 blackpiece_image_filename = img_path + 'black_resize.png'
@@ -244,7 +244,7 @@ while True:
 				is_homepage = False
 				page_status = GAME_PAGE
 				game.players_config(kind1='Human',kind2='AI')	
-				#game.players_config(kind1='AI',kind2='Human')
+				# game.players_config(kind1='AI',kind2='Human')
 				queue = multiprocessing.Queue()
 				thinking = False
 				game.start()

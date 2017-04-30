@@ -9,6 +9,8 @@ from element import *
 class Board:
     def __init__(self):
         self.stage = 0
+        # black - white
+        self.deficit = 0 
 
     def current_player(self, state):
         # Takes the game state and returns the current player's
@@ -67,11 +69,15 @@ class Board:
                         else:
                             white_corner += 1
 
-        if black_corner+white_corner>self.stage and (abs(black_corner-white_corner)>=2 or (self.stage==0 and black_corner!=white_corner)):
-            if white_corner>black_corner:
-                return 'w'
-            if black_corner>white_corner:
+        if (black_corner+white_corner>self.stage) and black_and_white<=36:
+            # if white_corner>black_corner:
+            #     return 'w'
+            # if black_corner>white_corner:
+            #     return 'b'
+            if black_corner - white_corner > self.deficit:
                 return 'b'
+            else:
+                return 'w'
 
         next_player = 'w' if player == 'b' else 'b'
         # 判断结束

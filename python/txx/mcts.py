@@ -55,14 +55,14 @@ class MonteCarlo:
         # state的结构是(player,pieces)，其中pieces是棋盘状态，player是导致当先棋盘的玩家
         self.states = []
         # 模拟的时间限制
-        self.calculation_time = datetime.timedelta(seconds=5)
+        self.calculation_time = datetime.timedelta(seconds=7)
         # 模拟中的最大步数
         self.max_moves = 64
         # 记录某个中间状态对应的模拟数、模拟中赢的盘数的字典
         self.plays = {}
         self.wins = {}
         # UCB1的参数，先从根号2开始，目前来看越小越好
-        self.C = 1.4
+        self.C = 0.5
         # simulation里面，每个儿子至少的模拟次数
         self.threshold = 5
 
@@ -77,15 +77,19 @@ class MonteCarlo:
         self.states.append(state)
 
         black_and_white = 0
+        black_corner = 0
+        white_corner = 0
         for i in [0,7]:
             for j in [0,7]:
                 if state[1][i][j]!='n':
                     black_and_white += 1
+                if state[1][i][j]=='b':
+                    black_corner += 1
+                if state[1][i][j]=='w':
+                    white_corner += 1
 
-        if black_and_white>self.board.stage:
-            self.board.stage += 1
-            # self.wins = {}
-            # self.plays = {}
+        self.board.stage = black_and_white
+        self.board.deficit = black_corner - white_corner
 
         print 'stage',self.board.stage
 
