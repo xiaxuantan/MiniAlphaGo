@@ -21,12 +21,11 @@ def state_to_string(state):
     for i in range(8):
         for j in range(8):
             s += pieces[i][j]
-        # s += '\n'
+        s += '\n'
     return s
 
 def simulate(state, board):
 
-    step = 0
     while True:
 
         player = board.current_player(state)
@@ -122,9 +121,9 @@ class MonteCarlo:
     
         # Pick the move with the highest percentage of wins.
         # player是造成state S的玩家
-        percent_wins, move = max([(self.wins.get((player, state_to_string(S)), 0)/self.plays.get((player, state_to_string(S)), 0), p) for p, S in moves_states])
+        percent_wins, move = max([(self.wins.get((player, state_to_string(S)), 0)/self.plays.get((player, state_to_string(S)), 1), p) for p, S in moves_states])
 
-        print 'win_step',[(self.wins.get((player, state_to_string(S)), 0)/self.plays.get((player, state_to_string(S)), 0)) for p, S in moves_states]
+        print 'win_step',[(self.wins.get((player, state_to_string(S)), 0)/self.plays.get((player, state_to_string(S)), 1)) for p, S in moves_states]
         print 'percentage', percent_wins
         queue.put(move)
         return
@@ -138,15 +137,17 @@ class MonteCarlo:
         # then updates the statistics tables with the result.
         
         visited_states = set()
-        # state = copy.deepcopy(self.states[-1])
+
         (player,pieces) = self.states[-1] 
-        #pieces_copy = [ i[:] for i in pieces ]
-        state = (player, pieces)
+        pieces_copy = [ i[:] for i in pieces ]
+        state = (player, pieces_copy)
     
         expand = True
 
         # for t in xrange(self.max_moves):
         while expand==True:
+
+            print 'expand'
 
             player = self.board.current_player(state)
 
@@ -157,6 +158,7 @@ class MonteCarlo:
             # 选择p，以及state更新为选择了p后的状态
             # if len(moves_states)!=0 and all([plays.get((player, state_to_string(S))) for p, S in moves_states]) and all ([(plays[(player, state_to_string(S))]>self.threshold) for p, S in moves_states]):
             if len(moves_states)!=0 and all([plays.get((player, state_to_string(S))) for p, S in moves_states]):
+                print '123123'
                 # If we have stats on all of the legal moves here, use them.
                 summation = sum([plays[(player, state_to_string(S))] for p, S in moves_states])
                 log_total = log(summation)
@@ -168,14 +170,20 @@ class MonteCarlo:
                     for p, S in moves_states
                 )
             elif len(moves_states)!=0:
-                
+                print '234234'
+                print [plays.get((player, state_to_string(S))) for p, S in moves_states]
                 for p, S in moves_states:
                     if plays.get((player, state_to_string(S))) == None:
                         (move,state) = (p,S)
                         break
-            else:
+                print state_to_string(state)
+                print 'player',state[0]
+            elif len(moves_states)==0:
                 (temp_player, temp_pieces) = state
                 state = (player, temp_pieces)
+            else:
+                print 'unexpected'
+
 
             visited_states.add((player, state_to_string(state)))
 
@@ -188,8 +196,11 @@ class MonteCarlo:
                 self.plays[(player, state_to_string(state))] = 0
                 self.wins[(player, state_to_string(state))] = 0
 
+            winner = self.board.winner(state)
+            if winner:
+                break
 
-        self.current_state = state
+        # self.current_state = state
         pool = multiprocessing.Pool(processes=self.processes)
         resultSet = []
         for i in range(self.simulateTimes):
@@ -199,12 +210,17 @@ class MonteCarlo:
 
         totalBlackWins = 0
         totalWhiteWins = 0
+        totalTies = 0
+        
         for result in resultSet:
             if result.get() == 'b':
                 totalBlackWins += 1
             elif result.get() == 'w':
                 totalWhiteWins += 1
-        totalPlays = totalBlackWins + totalWhiteWins
+            elif result.get() == 't':
+                totalTies += 1
+                
+        totalPlays = totalBlackWins + totalWhiteWins + totalTies
 
         # 更新经过路径的数据
         for player, state in visited_states:

@@ -63,7 +63,7 @@ class Board:
                 elif pieces[i][j]=='w':
                     white_corner += 1
 
-        if white_corner+black_corner>self.stage and (self.stage<=2 or abs(black_corner - white_corner)>=2):
+        if white_corner+black_corner>self.stage and self.stage<=2 and abs(black_corner - white_corner)>=2:
             if white_corner>black_corner:
                 return 'w'
             if black_corner>white_corner:
