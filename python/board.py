@@ -56,14 +56,18 @@ class Board:
 
         white_corner = 0
         black_corner = 0
-        for i in [0,7]:
-            for j in [0,7]:
-                if pieces[i][j]=='b':
-                    black_corner += 1
-                elif pieces[i][j]=='w':
-                    white_corner += 1
+        black_and_white = 0
+        for i in range(8):
+            for j in range(8):
+                if pieces[i][j]!='n':
+                    black_and_white += 1
+                    if (i,j) in ((0,0),(0,7),(7,0),(7,7)):
+                        if pieces[i][j]=='b':
+                            black_corner += 1
+                        else:
+                            white_corner += 1
 
-        if white_corner+black_corner>self.stage and self.stage<=2 and abs(black_corner - white_corner)>=2:
+        if black_corner+white_corner>self.stage and (abs(black_corner-white_corner)>=2 or (self.stage==0 and black_corner!=white_corner)):
             if white_corner>black_corner:
                 return 'w'
             if black_corner>white_corner:

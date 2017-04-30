@@ -21,7 +21,7 @@ def state_to_string(state):
     for i in range(8):
         for j in range(8):
             s += pieces[i][j]
-        s += '\n'
+        # s += '\n'
     return s
 
 def simulate(state, board):
@@ -147,8 +147,6 @@ class MonteCarlo:
         # for t in xrange(self.max_moves):
         while expand==True:
 
-            print 'expand'
-
             player = self.board.current_player(state)
 
             # legal：从state出发的可行步
@@ -158,7 +156,7 @@ class MonteCarlo:
             # 选择p，以及state更新为选择了p后的状态
             # if len(moves_states)!=0 and all([plays.get((player, state_to_string(S))) for p, S in moves_states]) and all ([(plays[(player, state_to_string(S))]>self.threshold) for p, S in moves_states]):
             if len(moves_states)!=0 and all([plays.get((player, state_to_string(S))) for p, S in moves_states]):
-                print '123123'
+
                 # If we have stats on all of the legal moves here, use them.
                 summation = sum([plays[(player, state_to_string(S))] for p, S in moves_states])
                 log_total = log(summation)
@@ -170,14 +168,12 @@ class MonteCarlo:
                     for p, S in moves_states
                 )
             elif len(moves_states)!=0:
-                print '234234'
-                print [plays.get((player, state_to_string(S))) for p, S in moves_states]
+
                 for p, S in moves_states:
                     if plays.get((player, state_to_string(S))) == None:
                         (move,state) = (p,S)
                         break
-                print state_to_string(state)
-                print 'player',state[0]
+
             elif len(moves_states)==0:
                 (temp_player, temp_pieces) = state
                 state = (player, temp_pieces)
@@ -219,7 +215,7 @@ class MonteCarlo:
                 totalWhiteWins += 1
             elif result.get() == 't':
                 totalTies += 1
-                
+
         totalPlays = totalBlackWins + totalWhiteWins + totalTies
 
         # 更新经过路径的数据

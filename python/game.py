@@ -164,12 +164,13 @@ def draw_piece(pieces):
 				offset = ((chessboard_width)/8 - piece_width)/2
 				screen.blit(piece_image, (chessboard_x + x*grid_width + offset, chessboard_y + y*grid_height + offset))	
 
-def draw_hint(solutions, flips, focus, turn):
+def draw_hint(solutions, flips, focus, turn, last_move=None):
 	if len(solutions)==0:
 		return
 
 	color = color_black if turn=='b' else color_white
 	color_counter = color_white if turn=='b' else color_black
+	color_last_move = (255,0,0)
 
 	# 边框大小 默认为0就是填充矩形
 	bold = 5
@@ -184,6 +185,10 @@ def draw_hint(solutions, flips, focus, turn):
 		else:
 			pygame.draw.rect(screen, color, Rect(chessboard_x+grid_width*solutions[i][0],chessboard_y+grid_height*solutions[i][1],grid_width,grid_height), bold)	
 			show_text((chessboard_x+grid_width*solutions[i][0]+piece_width/2-offset, chessboard_y+grid_height*solutions[i][1]+piece_height/2-4*offset), str(flips[i]), color=color, font_size = 25)
+
+	# 显示上一次的东西
+	if last_move:
+		pygame.draw.rect(screen, color_last_move, Rect(chessboard_x+grid_width*last_move[0],chessboard_y+grid_height*last_move[1],grid_width,grid_height), bold)
 
 def draw_infoboard(game):
 	offset = 20
@@ -292,7 +297,7 @@ while True:
 			solutions, flips = chess.next_possible_steps(game.pieces, game.turn)
 
 			# 画出可能的解
-			draw_hint(solutions, flips, focus, game.turn)
+			draw_hint(solutions, flips, focus, game.turn, game.last_move)
 
 			next_turn = 'w' if game.turn == 'b' else 'b'
 			this_player = game.player1 if game.turn == 'b' else game.player2
@@ -311,6 +316,7 @@ while True:
 							# 摆棋子
 							game.pieces = chess.put_piece(focus, game.turn, game.pieces)
 							game.turn = next_turn
+							game.last_move = focus
 							this_player.step_stop()
 							next_player.step_start()
 				elif this_player.kind=='AI':
@@ -321,6 +327,7 @@ while True:
 								p.terminate()
 								thinking = False
 								game.pieces = chess.put_piece(pos, game.turn, game.pieces)
+								game.last_move = pos
 								game.turn = next_turn
 								this_player.step_stop()
 								next_player.step_start()

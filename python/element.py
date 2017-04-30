@@ -45,6 +45,7 @@ class Game:
 		self.turn = 'b'
 		self.unwalkable = 0
 		self.is_finished = False
+		self.last_move = None
 
 	def players_config(self,name1='Black',name2='White',kind1='Human',kind2='Human'):
 		self.player1 = Player(name=name1, kind=kind1)
@@ -58,10 +59,10 @@ class Game:
 		
 		#设置初始棋盘
 		self.pieces = [['n' for i in range(8)] for j in range(8)]
-		self.pieces[3][3] = 'b'
-		self.pieces[3][4] = 'w'
-		self.pieces[4][3] = 'w'
-		self.pieces[4][4] = 'b'
+		self.pieces[3][3] = 'w'
+		self.pieces[3][4] = 'b'
+		self.pieces[4][3] = 'b'
+		self.pieces[4][4] = 'w'
 
 		self.player1.t_step_total = self.player1.t_total = 0
 		self.player2.t_step_total = self.player2.t_total = 0
