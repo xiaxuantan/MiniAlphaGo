@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*- 
+# -*- coding:utf-8 -*-
 
 import pygame
 import chess
@@ -9,6 +9,8 @@ from pygame.locals import *
 from sys import exit
 import datetime
 import multiprocessing
+import json
+import socket
 
 ##########################################################################
 
@@ -65,7 +67,7 @@ pygame.display.set_caption("Reversi")
 ##########################################################################
 
 #导入各种图片
-img_path = '../../img/'
+img_path = '../img/'
 homepage_header_image_filename = img_path + 'homepage_header.png'
 background_image_filename = img_path + 'background.jpg'
 blackpiece_image_filename = img_path + 'black_resize.png'
@@ -116,16 +118,16 @@ def fetch_mode_position(pos):
 	else:
 		return -1
 
-def show_text(pos, text, color=(0,0,0), font_bold = False, font_size = 13, font_italic = False, font_type=img_path+'MONACO.TTF'):         
-    #获取系统字体，并设置文字大小  
-    text_font = pygame.font.Font(font_type, font_size)  
-    #设置是否加粗属性  
-    text_font.set_bold(font_bold)  
-    #设置是否斜体属性  
-    text_font.set_italic(font_italic)  
-    #设置文字内容  
-    text = text_font.render(text, 1, color)  
-    #绘制文字  
+def show_text(pos, text, color=(0,0,0), font_bold = False, font_size = 13, font_italic = False, font_type=img_path+'MONACO.TTF'):
+    #获取系统字体，并设置文字大小
+    text_font = pygame.font.Font(font_type, font_size)
+    #设置是否加粗属性
+    text_font.set_bold(font_bold)
+    #设置是否斜体属性
+    text_font.set_italic(font_italic)
+    #设置文字内容
+    text = text_font.render(text, 1, color)
+    #绘制文字
     screen.blit(text, pos)
 
 # 很多东西都写死了 参数mode代表鼠标移到了哪个模式的位置上
@@ -142,15 +144,15 @@ def draw_homepage(mode):
 	for i in range(4):
 		pygame.draw.ellipse(screen, color_black, (mode_button_left, mode_button_up+i*mode_button_frame_height, mode_button_width, mode_button_height), bolds[i])
 		show_text((text_lefts[i], mode_button_up+i*mode_button_frame_height+offset), texts[i], color=colors[i], font_size = 30, font_type=font_type)
-	
+
 def draw_chessboard():
-	
+
 	bold = 3
 	for i in range(8):
 		for j in range(8):
 			pygame.draw.rect(screen, color_deep_green, Rect(chessboard_x+grid_width*i,chessboard_y+grid_height*j,grid_width,grid_height))
 	for i in range(9):
-		pygame.draw.line(screen, color_gray, 
+		pygame.draw.line(screen, color_gray,
 			(chessboard_x+grid_width*i,chessboard_y), (chessboard_x+grid_width*i,chessboard_y+chessboard_height), bold)
 	for i in range(9):
 		pygame.draw.line(screen, color_gray,
@@ -162,15 +164,15 @@ def draw_piece(pieces):
 			if not pieces[x][y]=='n' :
 				piece_image = blackpiece if pieces[x][y] == 'b' else whitepiece
 				offset = ((chessboard_width)/8 - piece_width)/2
-				screen.blit(piece_image, (chessboard_x + x*grid_width + offset, chessboard_y + y*grid_height + offset))	
+				screen.blit(piece_image, (chessboard_x + x*grid_width + offset, chessboard_y + y*grid_height + offset))
 
-def draw_hint(solutions, flips, focus, turn, last_move):
+def draw_hint(solutions, flips, focus, turn, last_move=None):
 	if len(solutions)==0:
 		return
 
 	color = color_black if turn=='b' else color_white
 	color_counter = color_white if turn=='b' else color_black
-	color_last_move = (0xd2,0x69,0x1e)
+	color_last_move = (255,0,0)
 
 	# 边框大小 默认为0就是填充矩形
 	bold = 5
@@ -183,10 +185,12 @@ def draw_hint(solutions, flips, focus, turn, last_move):
 			show_text((chessboard_x+grid_width*solutions[i][0]+piece_width/2-offset, chessboard_y+grid_height*solutions[i][1]+piece_height/2-4*offset), str(flips[i]), color=color_counter, font_size = 25)
 
 		else:
-			pygame.draw.rect(screen, color, Rect(chessboard_x+grid_width*solutions[i][0],chessboard_y+grid_height*solutions[i][1],grid_width,grid_height), bold)	
+			pygame.draw.rect(screen, color, Rect(chessboard_x+grid_width*solutions[i][0],chessboard_y+grid_height*solutions[i][1],grid_width,grid_height), bold)
 			show_text((chessboard_x+grid_width*solutions[i][0]+piece_width/2-offset, chessboard_y+grid_height*solutions[i][1]+piece_height/2-4*offset), str(flips[i]), color=color, font_size = 25)
-	if last_move!=None:
-		pygame.draw.rect(screen, color_last_move, Rect(chessboard_x+grid_width*last_move[0],chessboard_y+grid_height*last_move[1],grid_width,grid_height),bold)
+
+	# 显示上一次的东西
+	if last_move:
+		pygame.draw.rect(screen, color_last_move, Rect(chessboard_x+grid_width*last_move[0],chessboard_y+grid_height*last_move[1],grid_width,grid_height), bold)
 
 def draw_infoboard(game):
 	offset = 20
@@ -207,8 +211,21 @@ def draw_infoboard(game):
 
 ##########################################################################
 
+try:
+	config = json.load(open('chess.config','r'))
+except Exception, e:
+	raise e
+
+
+def recv(squeue, sock):
+	while True:
+		pos = json.loads(sock.recv(1024))
+		squeue.put(pos)
+
+##########################################################################
+
 #游戏主循环
-while True:
+while 1:
 
 	#绘制背景
 	screen.blit(background, (0,0))
@@ -226,48 +243,69 @@ while True:
 
 	# 在主页
 	if page_status == HOME_PAGE:
-		
+
 		mode = fetch_mode_position(mouse_pos)
 		draw_homepage(mode)
 
 		if click == True and not mode == -1:
-			if mode == MAN_VS_MAN:	
+			if mode == MAN_VS_MAN:
 				is_homepage = False
 				page_status = GAME_PAGE
-				game.players_config()	
+				game.players_config()
 				game.start()
 			elif mode == MAN_VS_AI:
 				board = Board()
 				mcts = MonteCarlo(board)
 				is_homepage = False
 				page_status = GAME_PAGE
-				# game.players_config(kind1='Human',kind2='AI')
-				game.players_config(kind1='AI',kind2='Human')	
+				if config["man_vs_ai"]=="man":
+					game.players_config(kind1='Human',kind2='AI')
+				else:
+					game.players_config(kind1='AI',kind2='Human')
 				queue = multiprocessing.Queue()
 				thinking = False
 				game.start()
 			elif mode == MAN_VS_NET:
 				pass
 			elif mode == AI_VS_NET:
-				pass
+				try:
+					sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+					sock.connect((config["ip"], config["port"]))
+					receiver = multiprocessing.Process(target=recv, args=(squeue,sock))
+					receiver.start()
+				except:
+					print "Connection Refused"
+					exit()
+				if config["ai_vs_net"]=="ai":
+					game.players_config(kind1='AI',kind2='Net')
+				else:
+					game.players_config(kind1='Net',kind2='AI')
+				board = Board()
+				mcts = MonteCarlo(board)
+				is_homepage = False
+				page_status = GAME_PAGE
+				queue = multiprocessing.Queue()
+				squeue = multiprocessing.Queue()
+				thinking = False
+				game.start()
 
 	# 在设置页
 	elif page_status == SETTING_PAGE:
-		
+
 		if mode == MAN_VS_AI:
 			pass
 		elif mode == MAN_VS_NET:
 			pass
 		elif mode == AI_VS_NET:
 			pass
-		
+
 	# 如果比赛已经开始
 	elif page_status == GAME_PAGE:
 
 		# 两边都走不了
 		if game.unwalkable == 2:
 			# 比赛结束
-			game.end()		
+			game.end()
 
 		# 画棋盘
 		draw_chessboard()
@@ -282,7 +320,7 @@ while True:
 		if click == True and mouse_pos[0]>=refresh_button_x and mouse_pos[0]<=refresh_button_x+button_width and mouse_pos[1]>=refresh_button_y and mouse_pos[1]<=refresh_button_y+button_height:
 			game.start()
 		# 按了回到桌面按钮
-		elif click == True and mouse_pos[0]>=home_button_x and mouse_pos[0]<=home_button_x+button_width and mouse_pos[1]>=home_button_y and mouse_pos[1]<=home_button_y+button_height:			
+		elif click == True and mouse_pos[0]>=home_button_x and mouse_pos[0]<=home_button_x+button_width and mouse_pos[1]>=home_button_y and mouse_pos[1]<=home_button_y+button_height:
 			game.end()
 			page_status = HOME_PAGE
 
@@ -325,10 +363,12 @@ while True:
 								p.terminate()
 								thinking = False
 								game.pieces = chess.put_piece(pos, game.turn, game.pieces)
-								game.turn = next_turn
 								game.last_move = pos
+								game.turn = next_turn
 								this_player.step_stop()
 								next_player.step_start()
+								if next_player.kind=='Net':
+									sock.send(json.dumps({"x":pos[0],"y":pos[1]}))
 							else:
 								# 没有步可以下
 								pass
@@ -341,14 +381,25 @@ while True:
 						p.start()
 						# 其实这里next_turn == last_turn
 						# mcts.update((next_turn,game.pieces))
-					
+
 				elif this_player.kind=='Net':
-					# action = decode_json()
-					pass
+					try:
+						pos = squeue.get_nowait()
+						if pos != None:
+							game.pieces = chess.put_piece(pos, game.turn, game.pieces)
+							game.last_move = pos
+							game.turn = next_turn
+							this_player.step_stop()
+							next_player.step_start()
+						else:
+							pass
+					except:
+						pass
+					
 		else:
 			# print 'game end'
 			# 输出获胜方
 			pass
 
 	pygame.display.update()
-		
+
